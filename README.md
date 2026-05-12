@@ -1,4 +1,4 @@
-# 🎯 Cortex — AI Candidate Screening System
+# ֎ Cortex — AI Candidate Screening System
 
 A **production-ready, RAG-powered technical interview platform** running on **Google Gemini + Groq** with intelligent adaptive questioning, mixed question formats, real-time off-topic detection, and per-question ideal answer feedback.
 
