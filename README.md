@@ -260,3 +260,13 @@ Edit `_answer_quality()` in `question_generator.py` — adjust the word-count th
 
 ### Customise the IDK phrase list
 Add or remove entries from the `IDK_PHRASES` set in `question_generator.py` to control which responses trigger the IDK flow (difficulty reduction, graceful logging).
+
+---
+
+## 👨‍💻 Author
+
+**Shubhankar**
+
+## 📄 License
+
+This project is licensed under the MIT License.
