@@ -1,0 +1,87 @@
+AI/ML ENGINEERING - TECHNICAL KNOWLEDGE BASE
+
+=== MACHINE LEARNING FUNDAMENTALS ===
+
+Supervised learning trains models on labeled (input, output) pairs. Classification predicts discrete labels; regression predicts continuous values. The goal is to learn a function f(x) → y that generalises to unseen data.
+
+Bias-variance tradeoff: High bias (underfitting) — model too simple, misses patterns. High variance (overfitting) — model memorises training data, fails on new data. Regularisation (L1/Lasso, L2/Ridge) penalises model complexity. Dropout, early stopping, data augmentation also reduce variance.
+
+Train/validation/test split: training set for fitting, validation set for hyperparameter tuning and model selection, test set for final unbiased evaluation. K-fold cross-validation averages performance across k folds — more reliable for small datasets.
+
+Loss functions: MSE for regression (sensitive to outliers), MAE for robust regression, Cross-Entropy (log loss) for classification, Focal Loss for class imbalance, Contrastive Loss for metric learning. Choice of loss directly impacts what the model optimises.
+
+Optimisation: SGD with momentum, Adam (adaptive per-parameter learning rates — most popular), AdaGrad, RMSProp. Learning rate schedules: cosine annealing, warmup + decay, cyclical LR. Gradient clipping prevents exploding gradients in RNNs/transformers.
+
+=== DEEP LEARNING AND NEURAL NETWORKS ===
+
+Backpropagation computes gradients of the loss with respect to each parameter via the chain rule. Forward pass computes predictions; backward pass computes gradients; optimiser updates weights.
+
+Convolutional Neural Networks (CNNs): convolutional layers apply learnable filters across spatial dimensions, capturing local patterns. Pooling reduces spatial dimensions. BatchNorm stabilises training by normalising layer inputs. ResNets use skip connections to enable very deep networks.
+
+Recurrent Neural Networks (RNNs) process sequential data. LSTMs use gates (forget, input, output) to control information flow, addressing vanishing gradients. GRUs are lighter variants. Both struggle with very long sequences — transformers replaced them for most NLP.
+
+Transformers use self-attention to relate all positions in a sequence simultaneously. Attention score: softmax(QK^T / sqrt(d_k)) * V. Multi-head attention runs h attention functions in parallel. Positional encodings add order information. BERT uses bidirectional encoder; GPT uses causal decoder.
+
+Transfer learning: pre-train on large datasets, fine-tune on task-specific data with smaller LR. Fine-tuning strategies: full fine-tune, freeze lower layers, LoRA (Low-Rank Adaptation) inserts trainable rank-decomposition matrices. PEFT methods reduce trainable parameters dramatically.
+
+=== RETRIEVAL-AUGMENTED GENERATION (RAG) ===
+
+RAG combines retrieval from a knowledge base with generative LLM capabilities. Solves knowledge cutoff, hallucination, and private data access problems. Components: document ingestion, embedding, vector store, retrieval, and generation.
+
+Document chunking strategies matter enormously. Fixed-size chunking (e.g., 512 tokens) is simple but splits context mid-sentence. Sentence-aware chunking preserves semantic units. Hierarchical chunking stores both fine-grained and coarse chunks. Chunk overlap (e.g., 10-20%) preserves cross-boundary context. Chunk size must match embedding model's optimal input length.
+
+Embedding models map text to dense vectors in high-dimensional space. Sentence-BERT, E5, BGE, and OpenAI's text-embedding-ada-002 are common choices. Domain-specific fine-tuning of embeddings significantly improves retrieval. Embedding dimension vs. quality tradeoff: smaller dims (256-384) are faster, larger (1536+) are more expressive.
+
+Vector databases store and efficiently query embeddings. FAISS (in-memory, Facebook), Pinecone (managed), Weaviate (hybrid search), Qdrant, Milvus, Chroma (open-source). Indexing algorithms: HNSW (fast, approximate nearest neighbour), IVF (inverted file index), PQ (product quantisation for compression). Cosine similarity vs. dot product vs. Euclidean distance.
+
+Advanced retrieval techniques: Hybrid search combines dense (semantic) and sparse (BM25/TF-IDF) retrieval with RRF (Reciprocal Rank Fusion). HyDE (Hypothetical Document Embeddings) generates a hypothetical answer and embeds it for retrieval. Multi-query retrieval generates query variants. Re-ranking with cross-encoders (slower but more accurate than bi-encoders).
+
+Context window management in RAG: retrieved chunks must fit within LLM context window. Strategies: map-reduce (process each chunk independently, then summarise), refine (iteratively update answer), lost-in-the-middle problem (LLMs ignore middle of long contexts — put relevant info first/last).
+
+=== NATURAL LANGUAGE PROCESSING ===
+
+Tokenisation converts text to tokens. BPE (Byte-Pair Encoding) and WordPiece (BERT) iteratively merge frequent subword pairs. SentencePiece handles multilingual text. Token count affects LLM costs and context limits — ~4 chars per token for English.
+
+Named Entity Recognition (NER), POS tagging, dependency parsing are classic NLP tasks. Hugging Face Transformers provides pre-trained models for all of these. Zero-shot and few-shot prompting can handle many NLP tasks without fine-tuning.
+
+Semantic similarity: cosine similarity between embeddings measures semantic distance. Used for deduplication, clustering, retrieval, and semantic search. Threshold selection depends on use case — higher threshold for precision, lower for recall.
+
+Text generation: temperature controls randomness (0 = greedy/deterministic, 1 = normal sampling, >1 = creative/random). Top-k sampling restricts to top k tokens. Top-p (nucleus) sampling selects from smallest set of tokens whose cumulative probability exceeds p. Beam search maintains multiple hypotheses.
+
+=== FEATURE ENGINEERING AND DATA ===
+
+Feature engineering transforms raw data into model inputs. Numerical: standardisation (z-score), normalisation (min-max), log transforms for skewed distributions, interaction features. Categorical: one-hot encoding, label encoding, target encoding, embedding layers.
+
+Handling imbalanced data: oversampling (SMOTE generates synthetic minority samples), undersampling, class weights in loss function, threshold tuning (ROC curve, precision-recall curve). F1-score, AUC-ROC, and average precision are better metrics than accuracy for imbalanced classes.
+
+Data leakage occurs when training data includes information not available at inference time. Common causes: fitting scalers on entire dataset before split, temporal leakage (future data), target encoding with full target. Always fit transformations on training data only.
+
+=== MODEL EVALUATION ===
+
+Classification metrics: Accuracy, Precision (TP/(TP+FP)), Recall (TP/(TP+FN)), F1 (harmonic mean of P and R), AUC-ROC (discrimination), Average Precision. Confusion matrix reveals error types. Choose metric based on business cost of false positives vs. false negatives.
+
+Regression metrics: MAE (interpretable), RMSE (penalises large errors), MAPE (percentage error, undefined for zero values), R² (explained variance). Residual analysis detects systematic errors.
+
+A/B testing and online evaluation: compare model variants with statistical significance testing. Minimum detectable effect, power analysis. Multi-armed bandit approaches balance exploration and exploitation.
+
+Model calibration: predicted probabilities should match observed frequencies. Calibration curve (reliability diagram) reveals over/under-confidence. Platt scaling and isotonic regression recalibrate probabilities.
+
+=== MLOPS AND PRODUCTION ===
+
+ML pipelines: data ingestion → preprocessing → training → evaluation → packaging → deployment. Orchestrate with Airflow, Prefect, or Kubeflow Pipelines. Reproducibility requires pinning library versions, seeds, and data snapshots.
+
+Model serving: REST endpoints (FastAPI + uvicorn), gRPC for performance-critical serving, batch inference for large-scale offline jobs. Model servers: TorchServe, TF Serving, Triton (NVIDIA, supports multiple frameworks). Optimise: ONNX export, TensorRT, quantisation (INT8, FP16).
+
+Experiment tracking: MLflow, Weights & Biases, Comet. Track hyperparameters, metrics, artefacts, code version. Enables reproducibility and comparison. Model registry manages model lifecycle (staging, production, archived).
+
+Data drift and model drift: monitor input feature distributions (PSI, KL divergence, KS test) and model performance (rolling window metrics). Alerts trigger retraining pipelines. Feature stores (Feast, Tecton) serve consistent features across training and serving.
+
+=== LARGE LANGUAGE MODELS ===
+
+Prompt engineering techniques: zero-shot, few-shot (examples in prompt), chain-of-thought (reasoning steps), self-consistency (majority vote across multiple CoT paths), ReAct (reason + act with tools). System prompt vs. user prompt roles.
+
+LLM evaluation: BLEU and ROUGE for text similarity (weak correlation with quality), BERTScore uses embeddings, LLM-as-judge (GPT-4 evaluating outputs), human evaluation gold standard. Benchmark datasets: MMLU, HellaSwag, HumanEval (code).
+
+Hallucination mitigation: grounding with RAG, structured output forcing (JSON mode), verification chains, citation requirements, temperature reduction for factual tasks.
+
+Fine-tuning vs. prompting: fine-tuning adapts model weights for domain-specific behaviour and style; prompting is faster and cheaper. Fine-tune when: consistent format required, domain shift is large, latency requires shorter prompts, proprietary data must stay internal.

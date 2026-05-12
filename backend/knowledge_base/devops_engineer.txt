@@ -1,0 +1,79 @@
+DEVOPS ENGINEERING - TECHNICAL KNOWLEDGE BASE
+
+=== DOCKER AND CONTAINERISATION ===
+
+Containers package application code, runtime, libraries, and config into an isolated, portable unit. Unlike VMs, containers share the host OS kernel — lighter, faster to start, but weaker isolation. Docker uses namespaces (process, network, mount isolation) and cgroups (resource limits).
+
+Dockerfile best practices: use official minimal base images (alpine, distroless), order layers from least to most frequently changed (COPY requirements.txt and pip install before COPY . .), multi-stage builds to exclude build tools from final image, run as non-root user, pin image digests for reproducibility.
+
+Docker networking: bridge network (default, containers on same host communicate), host network (shares host networking, no NAT, better performance), overlay network (multi-host, used by Docker Swarm/Compose). Expose only needed ports. Use Docker networks, not --link (deprecated).
+
+Docker volumes vs bind mounts: volumes are managed by Docker (stored in /var/lib/docker/volumes), portable, work well with docker-compose; bind mounts map host paths directly, useful for development. Tmpfs mounts for sensitive in-memory data.
+
+Container security: scan images with Trivy or Snyk, use distroless/minimal base images, don't run as root, read-only root filesystem, drop Linux capabilities, no privileged mode, secrets via env vars or secrets management (not baked into images).
+
+=== KUBERNETES ===
+
+Kubernetes orchestrates containers across a cluster. Control plane: API server (REST interface), etcd (cluster state store), scheduler (assigns pods to nodes), controller manager (runs controllers). Worker nodes: kubelet (manages pods on node), kube-proxy (network rules), container runtime.
+
+Core objects: Pod (smallest deployable unit, 1+ containers sharing network and storage), Deployment (manages ReplicaSets, handles rolling updates and rollbacks), Service (stable DNS/IP endpoint for pod groups — ClusterIP, NodePort, LoadBalancer), ConfigMap (non-sensitive config), Secret (sensitive data, base64-encoded, use sealed-secrets or external secrets for production).
+
+Deployment strategies: RollingUpdate (gradually replaces old pods — zero downtime), Recreate (terminates all old pods first — causes downtime), Blue/Green (run two identical environments, switch traffic), Canary (route small % of traffic to new version). Configure maxSurge and maxUnavailable for rolling updates.
+
+Health checks: livenessProbe (restart container if unhealthy — HTTP, TCP, exec), readinessProbe (remove from Service endpoints if not ready to serve traffic), startupProbe (gives slow-starting containers time before liveness kicks in). Configure initialDelaySeconds, periodSeconds, failureThreshold carefully.
+
+Resource management: requests (scheduled based on this — what the pod is guaranteed), limits (throttled/OOM-killed if exceeded). CPU limits cause throttling; memory limits cause OOM kills. Set requests accurately with VPA (Vertical Pod Autoscaler) or profiling. HPA scales replicas based on CPU/memory or custom metrics.
+
+Namespaces provide soft multi-tenancy: isolate resources, apply RBAC and NetworkPolicies per namespace. Resource quotas limit total resources per namespace. LimitRange sets default requests/limits.
+
+=== CI/CD PIPELINES ===
+
+CI/CD automates the path from code commit to production deployment. CI: lint, test, build, security scan triggered on every PR. CD: deploy to staging automatically, production manually (or automatically with feature flags/canary).
+
+GitOps: Git is the single source of truth for infrastructure and application state. Argo CD or Flux continuously reconciles cluster state with Git. Declarative, auditable, easy rollback (git revert). Push-based (pipeline pushes to cluster) vs pull-based (agent in cluster pulls from Git) — pull-based (Argo CD) is more secure.
+
+Pipeline tools: GitHub Actions (YAML workflows, GitHub-native), GitLab CI (tight GitLab integration), Jenkins (highly flexible, plugin-heavy, self-hosted), CircleCI, Tekton (Kubernetes-native). Choose based on ecosystem and hosting preference.
+
+Build optimisation: cache Docker layers, use build matrices for parallel test jobs, incremental builds with Nx/Turborepo for monorepos, skip unchanged services, cache dependency installs.
+
+Secrets in CI/CD: use secrets manager (Vault, AWS Secrets Manager, GitHub Encrypted Secrets), never hardcode in pipelines or commit to Git. Rotate secrets regularly. Audit access logs. OIDC authentication between CI and cloud providers avoids long-lived credentials.
+
+=== INFRASTRUCTURE AS CODE ===
+
+Terraform manages cloud infrastructure declaratively. Plan → Apply workflow shows changes before applying. State file tracks actual infrastructure — store in remote backend (S3 + DynamoDB locking, Terraform Cloud). Modules encapsulate reusable components. Workspaces or directory separation for environments.
+
+Terraform best practices: use modules for DRY code, lock provider versions (~> 4.0), use data sources to reference existing resources, tag all resources, import existing infrastructure, use terragrunt for DRY root configurations across environments.
+
+Ansible is agentless configuration management (SSH/WinRM). Playbooks define desired state (idempotent). Roles structure reusable content. Inventory defines target hosts. Use Ansible Vault for secrets. Better for configuration management; Terraform for infrastructure provisioning.
+
+Helm is the Kubernetes package manager. Charts bundle Kubernetes manifests as templates with values.yaml for configuration. values.yaml overrides per environment. Chart versioning enables rollbacks (helm rollback). Helmfile manages multiple releases declaratively.
+
+=== CLOUD PLATFORMS ===
+
+AWS core services: EC2 (VMs), ECS/EKS (containers), Lambda (serverless), S3 (object storage), RDS (managed relational DB), ElastiCache (managed Redis/Memcached), SQS/SNS (messaging), CloudFront (CDN), Route 53 (DNS), VPC (networking), IAM (identity and access).
+
+IAM best practices: least privilege principle, use roles (not access keys) for services, enable MFA for human users, use SCPs (Service Control Policies) in AWS Organizations, regularly audit permissions with IAM Access Analyzer, avoid root account for day-to-day operations.
+
+VPC networking: subnets (public — has route to internet gateway; private — routes through NAT gateway), security groups (stateful, instance-level firewall), NACLs (stateless, subnet-level), VPC peering/Transit Gateway for multi-VPC connectivity. Place databases and internal services in private subnets.
+
+=== MONITORING AND OBSERVABILITY ===
+
+Prometheus collects metrics via pull model (scrapes /metrics endpoints). PromQL queries: rate() for per-second rate of counters, histogram_quantile() for latency percentiles, avg by (label) for aggregation. Alertmanager routes alerts to PagerDuty/Slack. Grafana visualises Prometheus data.
+
+Golden Signals: Latency (request duration — track p50, p95, p99, not just average), Traffic (requests per second), Errors (error rate — 5xx, failed jobs), Saturation (resource utilisation — CPU, memory, disk, connection pool). Alert on what impacts users.
+
+Logging: structured JSON logs (not plain text) for machine parseability. Include: timestamp, level, service, trace_id, request_id, user_id where applicable. ELK Stack (Elasticsearch + Logstash + Kibana) or Loki + Grafana for log aggregation. Correlate logs with traces using trace IDs.
+
+Distributed tracing: OpenTelemetry is the standard instrumentation framework. Traces consist of spans (units of work with start/end times, attributes). Propagate trace context across service boundaries (W3C Trace Context headers). Jaeger, Zipkin, or Tempo for storage and visualisation.
+
+SLOs and error budgets: SLI (metric measuring service health), SLO (target for SLI — e.g., 99.9% of requests < 200ms), SLA (contractual SLO). Error budget = 1 - SLO target. When budget is exhausted, pause risky changes. Calculate burn rate to predict budget exhaustion.
+
+=== NETWORKING AND SECURITY ===
+
+TLS/HTTPS: TLS 1.3 is current standard. Certificate management: Let's Encrypt (automated, free), cert-manager in Kubernetes. HSTS header forces HTTPS. mTLS (mutual TLS) for service-to-service authentication.
+
+DNS: A records (IPv4), AAAA (IPv6), CNAME (alias), MX (mail), TXT (verification, SPF, DKIM). TTL controls caching. Route 53 health-check-based routing enables failover. Latency-based and weighted routing for multi-region.
+
+Zero-trust networking: never trust based on network location. Authenticate and authorise every request. Service mesh mTLS, SPIFFE/SPIRE identity. Micro-segmentation with NetworkPolicies.
+
+WAF (Web Application Firewall) protects against OWASP Top 10. Rate limiting at the edge. DDoS protection (AWS Shield, Cloudflare). Ingress controller rate limiting and IP filtering for Kubernetes.

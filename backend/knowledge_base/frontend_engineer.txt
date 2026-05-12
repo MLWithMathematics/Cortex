@@ -1,0 +1,87 @@
+FRONTEND ENGINEERING - TECHNICAL KNOWLEDGE BASE
+
+=== JAVASCRIPT FUNDAMENTALS ===
+
+Event loop: JavaScript is single-threaded with a call stack, heap, and task queue. Async operations (setTimeout, fetch, I/O) are offloaded to Web APIs; callbacks are pushed to the task queue after completion. Microtasks (Promise callbacks, queueMicrotask) run before macrotasks (setTimeout, setInterval). Understanding this prevents subtle async bugs.
+
+Closures: a function that retains access to its lexical scope even when executed outside that scope. Used for data encapsulation, factory functions, and memoisation. Common pitfall: loop closures capturing the same variable — use let or IIFE to fix.
+
+Prototypal inheritance: objects inherit from other objects via the prototype chain. Object.create(), class syntax (syntactic sugar over prototypes), and Object.assign() for mixins. ES6 classes add constructor, extends, and super keywords but don't change the prototype model.
+
+Promises and async/await: Promise states are pending, fulfilled, or rejected. Promise.all runs concurrently and rejects if any rejects; Promise.allSettled waits for all; Promise.race returns the first to settle. Async functions always return a promise; await pauses execution until the promise settles.
+
+Modules (ESM): import/export are static (analysed at parse time), enabling tree-shaking. CommonJS (require/module.exports) is dynamic. Default vs named exports. Dynamic import() for code splitting.
+
+=== REACT ===
+
+React renders a virtual DOM, diffs it against the previous render (reconciliation), and applies minimal DOM updates. Keys in lists help React identify which elements changed — use stable unique IDs, not array indices.
+
+Hooks: useState for local state, useEffect for side effects (runs after render), useContext for consuming context, useReducer for complex state, useMemo for memoising expensive computations, useCallback for stable function references to prevent child re-renders. Custom hooks encapsulate reusable logic.
+
+Component patterns: controlled components (form inputs driven by state), lifting state up for sibling communication, compound components (parent/child via context), render props, higher-order components (HOCs). Prefer composition over inheritance.
+
+State management: local state (useState), lifting state, Context API (avoid overusing — causes re-renders for all consumers), Zustand/Jotai (atomic, lightweight), Redux Toolkit (complex global state with DevTools). Choose based on complexity.
+
+useEffect dependencies: missing deps cause stale closures (reads old values); exhaustive deps with objects/functions cause infinite loops — use useMemo/useCallback or object spread. React 18's strict mode double-invokes effects in development to detect cleanup issues.
+
+React 18 features: concurrent rendering, automatic batching of state updates (even in async code), startTransition for marking non-urgent updates, Suspense for data fetching, Server Components (RSC) for zero-bundle-size server-rendered components.
+
+=== PERFORMANCE OPTIMISATION ===
+
+Core Web Vitals: LCP (Largest Contentful Paint — loading, target <2.5s), FID/INP (interactivity), CLS (Cumulative Layout Shift — visual stability, target <0.1). Google ranking factor.
+
+Code splitting: lazy load routes and heavy components with React.lazy + Suspense. Dynamic import() for conditional modules. Bundle analyser (webpack-bundle-analyzer) identifies large dependencies. Tree-shaking eliminates unused exports.
+
+Image optimisation: use WebP/AVIF formats, responsive images with srcset and sizes, lazy loading (loading="lazy"), aspect ratio boxes to prevent layout shift, CDN delivery. Next.js <Image> component handles these automatically.
+
+Critical rendering path: Parse HTML → build DOM → parse CSS → build CSSOM → render tree → layout → paint → composite. Optimise by: inlining critical CSS, deferring non-critical JS, preloading key resources, avoiding render-blocking resources.
+
+Memoisation: React.memo prevents re-renders when props haven't changed. useMemo caches computed values. useCallback caches function references. Overuse adds overhead — profile first. Only optimise measured bottlenecks.
+
+Virtual scrolling (react-window, react-virtual): render only visible items in a long list. Essential for thousands of rows. Reduces DOM nodes dramatically.
+
+=== CSS AND STYLING ===
+
+CSS specificity order: inline styles > IDs > classes/attributes/pseudoclasses > elements. !important overrides everything (avoid). Specificity calculated as (a, b, c) — (ID count, class count, element count).
+
+Flexbox: one-dimensional layout (row or column). justify-content aligns on main axis; align-items on cross axis. flex-grow/shrink/basis control sizing. gap replaces margin hacks. Perfect for navigation, cards, centering.
+
+CSS Grid: two-dimensional layout. grid-template-columns/rows define tracks. fr unit distributes free space. grid-area for named placement. auto-fill vs auto-fit with minmax for responsive grids without media queries.
+
+CSS custom properties (variables): --color-primary: #007bff; usage: color: var(--color-primary). Scoped to selectors. Enables dynamic theming, dark mode toggling via JS or :root overrides.
+
+CSS-in-JS (styled-components, Emotion) colocates styles with components, enables dynamic styles via props, automatic critical CSS extraction. Trade-off: runtime cost, larger bundle. CSS Modules provide local scoping without runtime overhead.
+
+=== ACCESSIBILITY (a11y) ===
+
+WCAG 2.1 guidelines: Perceivable, Operable, Understandable, Robust. AA level compliance is standard. Automated tools (axe, Lighthouse) catch ~30% of issues; manual testing with screen readers (NVDA, VoiceOver) is essential.
+
+Semantic HTML: use <button> for actions, <a> for navigation, <nav>, <main>, <header>, <footer>, <article> landmarks. Screen readers navigate by landmarks and headings. Heading hierarchy (h1-h6) should be logical.
+
+ARIA: Accessible Rich Internet Applications. Use ARIA as a last resort when semantic HTML is insufficient. aria-label, aria-labelledby, aria-describedby, aria-live for dynamic content, role attribute. Don't add ARIA to elements that already have implicit roles.
+
+Keyboard navigation: all interactive elements must be focusable (tabIndex=0) and operable via keyboard. Focus management in modals (trap focus), after route changes (move focus to heading), and after dynamic content loads. Visible focus indicators are mandatory.
+
+=== TYPESCRIPT ===
+
+TypeScript adds static typing to JavaScript. Interfaces vs types: both define object shapes; interfaces are open (can be extended via declaration merging), types are more flexible (unions, intersections, mapped types, conditional types). Prefer interfaces for public API shapes.
+
+Generics enable reusable, type-safe components: function identity<T>(arg: T): T. Constrain with extends: <T extends object>. Utility types: Partial<T>, Required<T>, Pick<T, K>, Omit<T, K>, Record<K, V>, ReturnType<T>, Awaited<T>.
+
+Type narrowing: typeof, instanceof, in operator, discriminated unions (type field), assertion functions. Avoid type assertions (as) when possible — they suppress type errors.
+
+=== BUILD TOOLING ===
+
+Vite uses ES modules in development (no bundling, instant HMR) and Rollup for production builds. Extremely fast cold start. Supports TypeScript, JSX, CSS Modules, PostCSS out of the box. Plugin ecosystem mirrors Rollup.
+
+Webpack: highly configurable bundler. Loaders transform files; plugins extend functionality. Code splitting via dynamic imports or SplitChunksPlugin. Tree-shaking requires ESM. Slower dev experience than Vite but more mature ecosystem.
+
+CI/CD for frontend: lint (ESLint, Prettier), type-check, unit tests (Vitest, Jest), build, E2E tests (Playwright, Cypress), deploy. Cache node_modules between runs. Deploy previews for PR review.
+
+=== TESTING ===
+
+Testing pyramid: unit tests (fast, isolated, many), integration tests (verify component interactions), E2E tests (slow, expensive, few). React Testing Library encourages testing behaviour not implementation. Query by role, label, or text — not test IDs.
+
+Mocking: mock API calls with MSW (Mock Service Worker — intercepts at network level), jest.mock() for modules. Avoid mocking too much — tests that mock everything aren't testing real behaviour.
+
+E2E with Playwright: cross-browser (Chrome, Firefox, WebKit). Auto-wait for elements. Trace viewer for debugging. Parallelise across workers. Use page object model for maintainability.

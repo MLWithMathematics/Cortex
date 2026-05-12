@@ -1,0 +1,89 @@
+BACKEND ENGINEERING - TECHNICAL KNOWLEDGE BASE
+
+=== REST API DESIGN ===
+
+REST (Representational State Transfer) is an architectural style for designing networked applications. A RESTful API uses HTTP requests to perform CRUD operations. Key principles include statelessness, uniform interface, and client-server separation.
+
+HTTP methods map to operations: GET retrieves data (idempotent, safe), POST creates resources, PUT replaces a resource entirely (idempotent), PATCH partially updates a resource, DELETE removes a resource (idempotent). Choosing the correct HTTP verb is critical for API semantics.
+
+Status codes communicate outcomes: 2xx for success (200 OK, 201 Created, 204 No Content), 3xx for redirects, 4xx for client errors (400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Too Many Requests), 5xx for server errors (500 Internal Server Error, 503 Service Unavailable).
+
+API versioning strategies: URI versioning (/v1/users), header versioning (Accept: application/vnd.api.v1+json), and query parameter versioning (?version=1). URI versioning is most common but pollutes URLs; header versioning is cleaner but less visible. Versioning is essential for backward compatibility.
+
+Pagination patterns: offset-based (page=2&limit=20) is simple but has drift issues with real-time data; cursor-based pagination (after=cursor_id) handles real-time data well and scales better; keyset pagination uses indexed columns for efficiency. For large datasets, cursor-based pagination is preferred.
+
+Rate limiting protects APIs from abuse. Common algorithms: Token Bucket allows bursts up to a limit, Leaky Bucket smooths traffic, Fixed Window counts requests per time window (vulnerable to boundary spikes), Sliding Window Log is accurate but memory-intensive. Return Retry-After headers when limiting. Store rate limit state in Redis for distributed systems.
+
+=== DATABASE DESIGN AND SQL ===
+
+Relational databases store data in tables with defined schemas. Normalization reduces redundancy: 1NF eliminates repeating groups, 2NF removes partial dependencies, 3NF removes transitive dependencies. Denormalization trades redundancy for read performance.
+
+Indexes accelerate queries by creating data structures (B-trees by default in PostgreSQL/MySQL) that allow O(log n) lookups instead of O(n) scans. Index on columns used in WHERE, JOIN, and ORDER BY clauses. Composite indexes follow prefix rules — an index on (a, b, c) helps queries filtering on a, (a,b), or (a,b,c) but not b alone.
+
+Transactions ensure ACID properties: Atomicity (all or nothing), Consistency (data remains valid), Isolation (concurrent transactions don't interfere), Durability (committed data persists). Isolation levels: READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE — higher levels reduce anomalies but increase lock contention.
+
+N+1 query problem occurs when fetching a list of N entities then making N additional queries for related data. Solutions: eager loading (JOIN or IN clauses), SELECT N+1 detection tools, ORM methods like Django's select_related/prefetch_related or SQLAlchemy's joinedload.
+
+Connection pooling reuses database connections to avoid expensive connection overhead. Pool size should match database max_connections divided by application instances. PgBouncer is a popular PostgreSQL connection pooler. Monitor pool exhaustion — it's a common production bottleneck.
+
+=== NOSQL DATABASES ===
+
+NoSQL databases sacrifice some relational guarantees for scalability and flexibility. Types: Document (MongoDB — JSON-like), Key-Value (Redis, DynamoDB), Column-family (Cassandra), Graph (Neo4j).
+
+MongoDB uses BSON documents. Schema flexibility allows fields to vary per document. Indexes work similarly to relational DBs. Aggregation pipeline chains stages ($match, $group, $project, $sort, $lookup). Avoid deeply nested documents and unbounded arrays.
+
+Redis is an in-memory data structure store. Data types: strings, hashes, lists, sets, sorted sets, streams. Use cases: caching, session storage, pub/sub, rate limiting, leaderboards, distributed locks. Persistence: RDB snapshots or AOF (append-only file) log. Eviction policies (LRU, LFU) manage memory limits.
+
+Cassandra uses a wide-column model. Data is partitioned by partition key; clustering columns determine sort order within a partition. Design tables query-first — model data around access patterns, not relationships. No joins; denormalize aggressively. Handles massive write throughput but queries must match partition key.
+
+=== CACHING STRATEGIES ===
+
+Cache-aside (lazy loading): application checks cache first; on miss, loads from DB and populates cache. Simple but can have cold start and stale data issues. Most common pattern.
+
+Write-through: write to cache and DB simultaneously. Data is always fresh in cache but adds write latency. Good for read-heavy workloads.
+
+Write-behind (write-back): write to cache immediately, persist to DB asynchronously. Improves write performance but risks data loss on cache failure.
+
+Cache invalidation is hard. Strategies: TTL-based expiry (simple, eventual consistency), event-driven invalidation (invalidate on write events), cache versioning, stale-while-revalidate. Avoid cache stampede (thundering herd) with probabilistic early expiration or distributed locks.
+
+CDN caching is important for static assets. Set correct Cache-Control headers: max-age for browser caching, s-maxage for CDN caching. Use ETags and Last-Modified for conditional requests. Vary header handles content negotiation.
+
+=== SYSTEM DESIGN ===
+
+Horizontal scaling (scale out) adds more machines; vertical scaling (scale up) adds resources to existing machines. Horizontal scaling requires stateless services (session state in Redis/DB, no local disk state).
+
+Load balancers distribute traffic across instances. Algorithms: round-robin, least connections, IP hash (consistent routing), weighted. Health checks remove unhealthy instances. Layer 4 (TCP) vs Layer 7 (HTTP) load balancing — L7 enables path-based routing and SSL termination.
+
+Message queues (RabbitMQ, Kafka, SQS) decouple producers from consumers, enabling async processing, load leveling, and retry logic. Kafka is a distributed log with persistent, replayable messages and high throughput — ideal for event streaming. RabbitMQ uses AMQP with routing, exchanges, and queues.
+
+Circuit breaker pattern prevents cascading failures. States: Closed (normal), Open (fail fast), Half-Open (test recovery). Implement with libraries like Resilience4j or Hystrix. Set thresholds for failure rate and timeout.
+
+=== AUTHENTICATION AND SECURITY ===
+
+JWT (JSON Web Tokens) encode claims in a signed token (header.payload.signature). Stateless — server verifies signature without DB lookup. Store in httpOnly cookies (not localStorage) to prevent XSS. Refresh token rotation — short-lived access tokens (15 min), longer-lived refresh tokens.
+
+OAuth 2.0 grants third-party limited access without sharing credentials. Flows: Authorization Code (with PKCE for SPAs), Client Credentials (service-to-service), Implicit (deprecated). OpenID Connect adds identity layer on top of OAuth 2.0.
+
+OWASP Top 10 includes SQL injection, XSS, CSRF, broken authentication, insecure deserialization, security misconfiguration. Use parameterized queries (not string interpolation), escape output, validate input, use HTTPS, set security headers (HSTS, CSP, X-Frame-Options).
+
+Password storage: hash with bcrypt, Argon2, or scrypt (not MD5 or SHA-1). These are slow by design to resist brute force. Never store plaintext passwords. Use salts to prevent rainbow table attacks.
+
+=== MICROSERVICES AND ARCHITECTURE ===
+
+Microservices decompose an application into small, independently deployable services. Benefits: independent scaling, technology diversity, fault isolation. Challenges: network latency, distributed transactions, service discovery, observability.
+
+Service mesh (Istio, Linkerd) handles cross-cutting concerns: mTLS, traffic management, observability. Sidecars intercept all traffic. Adds complexity but offloads networking from application code.
+
+API Gateway is the single entry point for clients. Handles auth, rate limiting, routing, SSL termination, request transformation. Kong, AWS API Gateway, Nginx are common choices.
+
+Event-driven architecture uses events to trigger and communicate between services. Domain events, integration events. Saga pattern handles distributed transactions: choreography (events trigger compensating actions) vs orchestration (central saga orchestrator).
+
+=== PERFORMANCE AND OBSERVABILITY ===
+
+The three pillars of observability: Metrics (Prometheus/Grafana — quantitative, e.g., latency p99, error rate, throughput), Logs (structured JSON logs, ELK stack or Loki), Traces (distributed tracing with Jaeger or Zipkin — trace request flow across services).
+
+Profiling: identify CPU hotspots, memory leaks, I/O bottlenecks. Use cProfile (Python), async-profiler (JVM), pprof (Go). Profile in production with low overhead. Flamegraphs visualize where time is spent.
+
+Database query optimization: EXPLAIN ANALYZE shows query plans. Look for seq scans on large tables (add index), sort operations (covered indexes), hash joins vs nested loops. Avoid SELECT * in production. Use read replicas for read-heavy workloads.
+
+Graceful degradation: when dependencies fail, serve degraded responses (stale cache, defaults) rather than erroring. Timeouts on every external call. Bulkhead pattern isolates failures.
